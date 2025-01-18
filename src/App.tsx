@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import BlogTranslationComponent from "./components/BlogTranslation";
 import MyBlogs from "./components/MyBlogs";
 import BlogDetail from "./components/BlogDetail";
+import ManageBlog from "./components/ManageBlog";
 
 interface Translation {
   language: string;
@@ -147,6 +148,9 @@ function App() {
                   className="text-white hover:text-indigo-200"
                 >
                   My Blogs
+                </Link>
+                <Link to="/manage" className="text-white hover:text-indigo-200">
+                  Manage Blogs
                 </Link>
               </nav>
             </div>
@@ -348,6 +352,7 @@ function App() {
           <Route path="/create" element={<BlogTranslationComponent />} />
           <Route path="/my-blogs" element={<MyBlogs />} />
           <Route path="/blog/:blogId/:language" element={<BlogDetail />} />
+          <Route path="/manage" element={<ManageBlog />} />
         </Routes>
       </div>
     </Router>

@@ -6,6 +6,15 @@ interface Translation {
   text: string;
 }
 
+interface BlogData {
+  blog_en: string;
+  category: string;
+  tags: string[];
+  createdAt: string;
+  author: string;
+  [key: string]: any;
+}
+
 const SUPPORTED_LANGUAGES = [
   "Hindi",
   "Marathi",
@@ -19,27 +28,73 @@ const SUPPORTED_LANGUAGES = [
   "Odia",
 ];
 
-// Map full language names to their codes
-const LANGUAGE_CODES: { [key: string]: string } = {
-  Hindi: "hi",
-  Marathi: "mr",
-  Gujarati: "gu",
-  Tamil: "ta",
-  Kannada: "kn",
-  Telugu: "te",
-  Bengali: "bn",
-  Malayalam: "ml",
-  Punjabi: "pa",
-  Odia: "or",
-};
+const CATEGORIES = [
+  "Technology",
+  "Travel",
+  "Food",
+  "Health",
+  "Education",
+  "Business",
+  "Entertainment",
+  "Sports",
+  "Lifestyle",
+  "Culture",
+];
+
+const SUGGESTED_TAGS = [
+  "AI",
+  "Machine Learning",
+  "Web Development",
+  "Mobile Apps",
+  "Cloud Computing",
+  "Data Science",
+  "Blockchain",
+  "IoT",
+  "Cybersecurity",
+  "Programming",
+  "Indian Culture",
+  "Festivals",
+  "Traditions",
+  "Food",
+  "Travel",
+  "Health",
+  "Fitness",
+  "Yoga",
+  "Meditation",
+  "Education",
+];
 
 const BlogTranslationComponent: React.FC = () => {
   const [englishBlog, setEnglishBlog] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [translations, setTranslations] = useState<Translation[]>([]);
+  const [category, setCategory] = useState<string>("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [customTag, setCustomTag] = useState<string>("");
+  const [author, setAuthor] = useState<string>("");
+
+  const handleTagClick = (tag: string) => {
+    if (tags.includes(tag)) {
+      setTags(tags.filter((t) => t !== tag));
+    } else if (tags.length < 5) {
+      setTags([...tags, tag]);
+    }
+  };
+
+  const handleCustomTagAdd = () => {
+    if (customTag && !tags.includes(customTag) && tags.length < 5) {
+      setTags([...tags, customTag]);
+      setCustomTag("");
+    }
+  };
 
   const handleTranslate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!category || tags.length === 0 || !author.trim()) {
+      alert("Please fill in all required fields (category, tags, and author)");
+      return;
+    }
+
     setIsProcessing(true);
     setTranslations([]);
 
@@ -63,27 +118,29 @@ const BlogTranslationComponent: React.FC = () => {
 
       const results = await Promise.all(translationPromises);
 
-      // Create blog translation object with all languages
-      const blogTranslations: { [key: string]: string } = {
+      // Create blog data object with metadata
+      const blogData: BlogData = {
         blog_en: englishBlog,
+        category,
+        tags,
+        author,
+        createdAt: new Date().toISOString(),
       };
 
       // Add translations for each language
       results.forEach(({ language, text }) => {
-        const langCode = LANGUAGE_CODES[language];
-        if (langCode) {
-          blogTranslations[`blog_${langCode}`] = text;
-        }
+        const langCode = language.toLowerCase().slice(0, 2);
+        blogData[`blog_${langCode}`] = text;
       });
 
       // Save to localStorage
       const savedData = localStorage.getItem("blogTranslations");
       const existingTranslations = savedData ? JSON.parse(savedData) : {};
-      const blogId = Date.now().toString(); // Using timestamp as ID for simplicity
+      const blogId = Date.now().toString();
 
       const updatedTranslations = {
         ...existingTranslations,
-        [blogId]: blogTranslations,
+        [blogId]: blogData,
       };
 
       localStorage.setItem(
@@ -91,7 +148,12 @@ const BlogTranslationComponent: React.FC = () => {
         JSON.stringify(updatedTranslations)
       );
       setTranslations(results);
+
+      // Reset form
       setEnglishBlog("");
+      setCategory("");
+      setTags([]);
+      setAuthor("");
     } catch (error) {
       console.error("Translation error:", error);
     } finally {
@@ -105,10 +167,111 @@ const BlogTranslationComponent: React.FC = () => {
         <h2 className="text-2xl font-bold">Blog Translation</h2>
       </div>
 
-      <form onSubmit={handleTranslate} className="space-y-4">
+      <form onSubmit={handleTranslate} className="space-y-6">
+        {/* Author Input */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            English Blog:
+            Author Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className="w-full p-2 border rounded"
+            required
+            placeholder="Enter author name..."
+          />
+        </div>
+
+        {/* Category Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full p-2 border rounded"
+            required
+          >
+            <option value="">Select a category</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tags Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Tags <span className="text-red-500">*</span>
+            <span className="text-gray-500 text-xs ml-2">
+              (Select up to 5 tags)
+            </span>
+          </label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {SUGGESTED_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleTagClick(tag)}
+                className={`px-2 py-1 rounded-full text-sm ${
+                  tags.includes(tag)
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customTag}
+              onChange={(e) => setCustomTag(e.target.value)}
+              className="flex-1 p-2 border rounded"
+              placeholder="Add custom tag..."
+            />
+            <button
+              type="button"
+              onClick={handleCustomTagAdd}
+              disabled={!customTag || tags.length >= 5}
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:bg-gray-300"
+            >
+              Add Tag
+            </button>
+          </div>
+          {tags.length > 0 && (
+            <div className="mt-2">
+              <p className="text-sm font-medium mb-1">Selected Tags:</p>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleTagClick(tag)}
+                      className="ml-1 text-blue-700 hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Blog Content */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            English Blog <span className="text-red-500">*</span>
           </label>
           <textarea
             value={englishBlog}
@@ -122,13 +285,13 @@ const BlogTranslationComponent: React.FC = () => {
         <button
           type="submit"
           disabled={isProcessing || !englishBlog.trim()}
-          className={`flex items-center px-4 py-2 rounded ${
+          className={`w-full px-4 py-2 rounded ${
             isProcessing || !englishBlog.trim()
               ? "bg-gray-300 cursor-not-allowed"
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
         >
-          {isProcessing ? "Translating..." : "Translate"}
+          {isProcessing ? "Translating..." : "Translate & Save"}
         </button>
       </form>
 

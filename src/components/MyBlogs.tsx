@@ -3,6 +3,10 @@ import { Link } from "react-router-dom";
 
 interface BlogTranslation {
   blog_en: string;
+  category: string;
+  tags: string[];
+  createdAt: string;
+  author: string;
   blog_hi?: string;
   blog_mr?: string;
   blog_gu?: string;
@@ -52,7 +56,8 @@ const MyBlogs: React.FC = () => {
   // Helper function to check if a translation exists and is not empty
   const hasTranslation = (translation: BlogTranslation, langCode: string) => {
     const key = `blog_${langCode}` as keyof BlogTranslation;
-    return translation[key] && translation[key]!.trim() !== "";
+    const value = translation[key];
+    return value && typeof value === "string" && value.trim() !== "";
   };
 
   return (
@@ -68,10 +73,10 @@ const MyBlogs: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Object.entries(savedTranslations).map(([id, translation]) => {
-          const urlSlug = getUrlSlug(translation.blog_en);
+        {Object.entries(savedTranslations).map(([id, blog]) => {
+          const urlSlug = getUrlSlug(blog.blog_en);
           const availableLanguages = Object.keys(LANGUAGE_NAMES).filter(
-            (code) => hasTranslation(translation, code)
+            (code) => hasTranslation(blog, code)
           );
 
           return (
@@ -81,14 +86,31 @@ const MyBlogs: React.FC = () => {
             >
               <div className="p-6">
                 <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                      {blog.category}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      by {blog.author}
+                    </span>
+                  </div>
                   <Link to={`/blog/${urlSlug}/en`} className="block">
                     <h3 className="text-lg font-semibold mb-2 text-gray-800 hover:text-blue-600">
-                      {translation.blog_en.slice(0, 50)}...
+                      {blog.blog_en.slice(0, 50)}...
                     </h3>
-                    <p className="text-gray-600 line-clamp-3">
-                      {translation.blog_en}
-                    </p>
+                    <p className="text-gray-600 line-clamp-3">{blog.blog_en}</p>
                   </Link>
+                </div>
+
+                <div className="flex flex-wrap gap-1 mb-4">
+                  {blog.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
 
                 <div className="mt-4">
@@ -117,10 +139,10 @@ const MyBlogs: React.FC = () => {
                 </div>
 
                 <div className="flex justify-between items-center mt-4 pt-4 border-t text-sm text-gray-500">
-                  <span>{availableLanguages.length} languages</span>
+                  <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
                   <button
                     onClick={() => {
-                      const translations = { [id]: translation };
+                      const translations = { [id]: blog };
                       const blob = new Blob(
                         [JSON.stringify(translations, null, 2)],
                         {
