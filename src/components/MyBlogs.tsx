@@ -49,6 +49,12 @@ const MyBlogs: React.FC = () => {
     return text.slice(0, 10).toLowerCase().replace(/\s+/g, "-");
   };
 
+  // Helper function to check if a translation exists and is not empty
+  const hasTranslation = (translation: BlogTranslation, langCode: string) => {
+    const key = `blog_${langCode}` as keyof BlogTranslation;
+    return translation[key] && translation[key]!.trim() !== "";
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -64,9 +70,8 @@ const MyBlogs: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Object.entries(savedTranslations).map(([id, translation]) => {
           const urlSlug = getUrlSlug(translation.blog_en);
-          const availableLanguages = Object.keys(translation).filter(
-            (key) =>
-              key !== "blog_en" && translation[key as keyof BlogTranslation]
+          const availableLanguages = Object.keys(LANGUAGE_NAMES).filter(
+            (code) => hasTranslation(translation, code)
           );
 
           return (
@@ -91,33 +96,28 @@ const MyBlogs: React.FC = () => {
                     Available in:
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/blog/${urlSlug}/en`}
-                      className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200"
-                    >
-                      English
-                    </Link>
-                    {availableLanguages.map((lang) => {
-                      const langCode = lang.split("_")[1];
-                      return (
-                        <Link
-                          key={lang}
-                          to={`/blog/${urlSlug}/${langCode}`}
-                          className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        >
-                          {
-                            LANGUAGE_NAMES[
-                              langCode as keyof typeof LANGUAGE_NAMES
-                            ]
-                          }
-                        </Link>
-                      );
-                    })}
+                    {availableLanguages.map((langCode) => (
+                      <Link
+                        key={langCode}
+                        to={`/blog/${urlSlug}/${langCode}`}
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          langCode === "en"
+                            ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {
+                          LANGUAGE_NAMES[
+                            langCode as keyof typeof LANGUAGE_NAMES
+                          ]
+                        }
+                      </Link>
+                    ))}
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center mt-4 pt-4 border-t text-sm text-gray-500">
-                  <span>{availableLanguages.length + 1} languages</span>
+                  <span>{availableLanguages.length} languages</span>
                   <button
                     onClick={() => {
                       const translations = { [id]: translation };

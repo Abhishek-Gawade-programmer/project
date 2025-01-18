@@ -1,24 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
+import React, { useState } from "react";
 import { translateText } from "../services/openai";
-import { Link } from "react-router-dom";
 
-interface BlogTranslation {
-  blog_en: string;
-  blog_hi?: string;
-  blog_mr?: string;
-  blog_gu?: string;
-  blog_ta?: string;
-  blog_kn?: string;
-  blog_te?: string;
-  blog_bn?: string;
-  blog_ml?: string;
-  blog_pa?: string;
-  blog_or?: string;
-}
-
-interface BlogTranslations {
-  [key: string]: BlogTranslation;
+interface Translation {
+  language: string;
+  text: string;
 }
 
 const SUPPORTED_LANGUAGES = [
@@ -34,40 +19,43 @@ const SUPPORTED_LANGUAGES = [
   "Odia",
 ];
 
+// Map full language names to their codes
+const LANGUAGE_CODES: { [key: string]: string } = {
+  Hindi: "hi",
+  Marathi: "mr",
+  Gujarati: "gu",
+  Tamil: "ta",
+  Kannada: "kn",
+  Telugu: "te",
+  Bengali: "bn",
+  Malayalam: "ml",
+  Punjabi: "pa",
+  Odia: "or",
+};
+
 const BlogTranslationComponent: React.FC = () => {
   const [englishBlog, setEnglishBlog] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [savedTranslations, setSavedTranslations] = useState<BlogTranslations>(
-    {}
-  );
+  const [translations, setTranslations] = useState<Translation[]>([]);
 
-  useEffect(() => {
-    const savedData = localStorage.getItem("blogTranslations");
-    if (savedData) {
-      setSavedTranslations(JSON.parse(savedData));
-    }
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleTranslate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
+    setTranslations([]);
 
     try {
-      const blogId = uuidv4();
-      const translations: BlogTranslation = {
-        blog_en: englishBlog,
-      };
-
       // Translate to all supported languages
       const translationPromises = SUPPORTED_LANGUAGES.map(async (language) => {
         try {
           const translatedText = await translateText(englishBlog, language);
-          const langCode = language.toLowerCase().slice(0, 2);
-          return { langCode, text: translatedText };
+          return {
+            language,
+            text: translatedText,
+          };
         } catch (err) {
           console.error(`Translation failed for ${language}:`, err);
           return {
-            langCode: language.toLowerCase().slice(0, 2),
+            language,
             text: `Translation failed for ${language}`,
           };
         }
@@ -75,40 +63,34 @@ const BlogTranslationComponent: React.FC = () => {
 
       const results = await Promise.all(translationPromises);
 
-      // Add translations to the object
-      results.forEach(({ langCode, text }) => {
-        translations[`blog_${langCode}` as keyof BlogTranslation] = text;
-      });
-
-      // Update translations object
-      const updatedTranslations = {
-        ...savedTranslations,
-        [blogId]: translations,
+      // Create blog translation object with all languages
+      const blogTranslations: { [key: string]: string } = {
+        blog_en: englishBlog,
       };
 
+      // Add translations for each language
+      results.forEach(({ language, text }) => {
+        const langCode = LANGUAGE_CODES[language];
+        if (langCode) {
+          blogTranslations[`blog_${langCode}`] = text;
+        }
+      });
+
       // Save to localStorage
+      const savedData = localStorage.getItem("blogTranslations");
+      const existingTranslations = savedData ? JSON.parse(savedData) : {};
+      const blogId = Date.now().toString(); // Using timestamp as ID for simplicity
+
+      const updatedTranslations = {
+        ...existingTranslations,
+        [blogId]: blogTranslations,
+      };
+
       localStorage.setItem(
         "blogTranslations",
         JSON.stringify(updatedTranslations)
       );
-
-      // Save to JSON file
-      const blob = new Blob(
-        [JSON.stringify({ [blogId]: translations }, null, 2)],
-        {
-          type: "application/json",
-        }
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `blog_${blogId.slice(0, 8)}.json`;
-      document.body.appendChild(a);
-      //   a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setSavedTranslations(updatedTranslations);
+      setTranslations(results);
       setEnglishBlog("");
     } catch (error) {
       console.error("Translation error:", error);
@@ -120,13 +102,10 @@ const BlogTranslationComponent: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Create Blog Translation</h2>
-        <Link to="/my-blogs" className="text-blue-500 hover:text-blue-600">
-          View All Blogs
-        </Link>
+        <h2 className="text-2xl font-bold">Blog Translation</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleTranslate} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">
             English Blog:
@@ -149,7 +128,7 @@ const BlogTranslationComponent: React.FC = () => {
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
         >
-          {isProcessing ? "Translating..." : "Translate & Save"}
+          {isProcessing ? "Translating..." : "Translate"}
         </button>
       </form>
 
@@ -159,6 +138,22 @@ const BlogTranslationComponent: React.FC = () => {
           <p className="text-gray-600 mt-2">
             Translating your blog to all languages...
           </p>
+        </div>
+      )}
+
+      {translations.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-xl font-bold mb-4">Translations</h3>
+          <div className="space-y-4">
+            {translations.map((translation) => (
+              <div key={translation.language} className="border rounded-lg p-4">
+                <h4 className="font-semibold text-lg mb-2">
+                  {translation.language}
+                </h4>
+                <p className="text-gray-700">{translation.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
