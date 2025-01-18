@@ -6,6 +6,7 @@ import BlogTranslationComponent from "./components/BlogTranslation";
 import MyBlogs from "./components/MyBlogs";
 import BlogDetail from "./components/BlogDetail";
 import ManageBlog from "./components/ManageBlog";
+import ExploreBlog from "./components/ExploreBlog";
 
 interface Translation {
   language: string;
@@ -139,6 +140,12 @@ function App() {
               <nav className="flex space-x-4">
                 <Link to="/" className="text-white hover:text-indigo-200">
                   Home
+                </Link>
+                <Link
+                  to="/explore"
+                  className="text-white hover:text-indigo-200"
+                >
+                  Explore
                 </Link>
                 <Link to="/create" className="text-white hover:text-indigo-200">
                   Create Blog
@@ -349,6 +356,7 @@ function App() {
               </main>
             }
           />
+          <Route path="/explore" element={<ExploreBlog />} />
           <Route path="/create" element={<BlogTranslationComponent />} />
           <Route path="/my-blogs" element={<MyBlogs />} />
           <Route path="/blog/:blogId/:language" element={<BlogDetail />} />
