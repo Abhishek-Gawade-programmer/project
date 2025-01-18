@@ -1,23 +1,46 @@
 import React, { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { translateText } from "../services/openai";
+import { Link } from "react-router-dom";
 
 interface BlogTranslation {
   blog_en: string;
-  blog_hi: string;
+  blog_hi?: string;
+  blog_mr?: string;
+  blog_gu?: string;
+  blog_ta?: string;
+  blog_kn?: string;
+  blog_te?: string;
+  blog_bn?: string;
+  blog_ml?: string;
+  blog_pa?: string;
+  blog_or?: string;
 }
 
 interface BlogTranslations {
   [key: string]: BlogTranslation;
 }
 
+const SUPPORTED_LANGUAGES = [
+  "Hindi",
+  "Marathi",
+  "Gujarati",
+  "Tamil",
+  "Kannada",
+  "Telugu",
+  "Bengali",
+  "Malayalam",
+  "Punjabi",
+  "Odia",
+];
+
 const BlogTranslationComponent: React.FC = () => {
-  const [blogId, setBlogId] = useState<string>("");
   const [englishBlog, setEnglishBlog] = useState<string>("");
-  const [hindiBlog, setHindiBlog] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const [savedTranslations, setSavedTranslations] = useState<BlogTranslations>(
     {}
   );
 
-  // Load saved translations from localStorage on component mount
   useEffect(() => {
     const savedData = localStorage.getItem("blogTranslations");
     if (savedData) {
@@ -25,50 +48,85 @@ const BlogTranslationComponent: React.FC = () => {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
 
-    // Create new translation entry
-    const newTranslation: BlogTranslation = {
-      blog_en: englishBlog,
-      blog_hi: hindiBlog,
-    };
+    try {
+      const blogId = uuidv4();
+      const translations: BlogTranslation = {
+        blog_en: englishBlog,
+      };
 
-    // Update translations object
-    const updatedTranslations = {
-      ...savedTranslations,
-      [blogId]: newTranslation,
-    };
+      // Translate to all supported languages
+      const translationPromises = SUPPORTED_LANGUAGES.map(async (language) => {
+        try {
+          const translatedText = await translateText(englishBlog, language);
+          const langCode = language.toLowerCase().slice(0, 2);
+          return { langCode, text: translatedText };
+        } catch (err) {
+          console.error(`Translation failed for ${language}:`, err);
+          return {
+            langCode: language.toLowerCase().slice(0, 2),
+            text: `Translation failed for ${language}`,
+          };
+        }
+      });
 
-    // Save to localStorage
-    localStorage.setItem(
-      "blogTranslations",
-      JSON.stringify(updatedTranslations)
-    );
-    setSavedTranslations(updatedTranslations);
+      const results = await Promise.all(translationPromises);
 
-    // Clear form
-    setBlogId("");
-    setEnglishBlog("");
-    setHindiBlog("");
+      // Add translations to the object
+      results.forEach(({ langCode, text }) => {
+        translations[`blog_${langCode}` as keyof BlogTranslation] = text;
+      });
+
+      // Update translations object
+      const updatedTranslations = {
+        ...savedTranslations,
+        [blogId]: translations,
+      };
+
+      // Save to localStorage
+      localStorage.setItem(
+        "blogTranslations",
+        JSON.stringify(updatedTranslations)
+      );
+
+      // Save to JSON file
+      const blob = new Blob(
+        [JSON.stringify({ [blogId]: translations }, null, 2)],
+        {
+          type: "application/json",
+        }
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `blog_${blogId.slice(0, 8)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setSavedTranslations(updatedTranslations);
+      setEnglishBlog("");
+    } catch (error) {
+      console.error("Translation error:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Blog Translation</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Create Blog Translation</h2>
+        <Link to="/my-blogs" className="text-blue-500 hover:text-blue-600">
+          View All Blogs
+        </Link>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Blog ID:</label>
-          <input
-            type="text"
-            value={blogId}
-            onChange={(e) => setBlogId(e.target.value)}
-            className="w-full p-2 border rounded"
-            required
-          />
-        </div>
-
         <div>
           <label className="block text-sm font-medium mb-1">
             English Blog:
@@ -78,43 +136,31 @@ const BlogTranslationComponent: React.FC = () => {
             onChange={(e) => setEnglishBlog(e.target.value)}
             className="w-full p-2 border rounded h-32"
             required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Hindi Blog:</label>
-          <textarea
-            value={hindiBlog}
-            onChange={(e) => setHindiBlog(e.target.value)}
-            className="w-full p-2 border rounded h-32"
-            required
+            placeholder="Enter your blog text in English..."
           />
         </div>
 
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          disabled={isProcessing || !englishBlog.trim()}
+          className={`flex items-center px-4 py-2 rounded ${
+            isProcessing || !englishBlog.trim()
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
         >
-          Save Translation
+          {isProcessing ? "Translating..." : "Translate & Save"}
         </button>
       </form>
 
-      <div className="mt-8">
-        <h3 className="text-xl font-bold mb-2">Saved Translations</h3>
-        {Object.entries(savedTranslations).map(([id, translation]) => (
-          <div key={id} className="border p-4 mb-4 rounded">
-            <h4 className="font-bold">Blog ID: {id}</h4>
-            <div className="mt-2">
-              <p className="font-medium">English:</p>
-              <p className="ml-4">{translation.blog_en}</p>
-            </div>
-            <div className="mt-2">
-              <p className="font-medium">Hindi:</p>
-              <p className="ml-4">{translation.blog_hi}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {isProcessing && (
+        <div className="mt-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-600 mt-2">
+            Translating your blog to all languages...
+          </p>
+        </div>
+      )}
     </div>
   );
 };

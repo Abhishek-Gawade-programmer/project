@@ -3,6 +3,7 @@ import { Languages, FileText, Percent, AlertCircle } from "lucide-react";
 import { translateText } from "./services/openai";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import BlogTranslationComponent from "./components/BlogTranslation";
+import MyBlogs from "./components/MyBlogs";
 
 interface Translation {
   language: string;
@@ -137,8 +138,14 @@ function App() {
                 <Link to="/" className="text-white hover:text-indigo-200">
                   Home
                 </Link>
-                <Link to="/crea" className="text-white hover:text-indigo-200">
-                  Blog Translation
+                <Link to="/create" className="text-white hover:text-indigo-200">
+                  Create Blog
+                </Link>
+                <Link
+                  to="/my-blogs"
+                  className="text-white hover:text-indigo-200"
+                >
+                  My Blogs
                 </Link>
               </nav>
             </div>
@@ -337,7 +344,8 @@ function App() {
               </main>
             }
           />
-          <Route path="/crea" element={<BlogTranslationComponent />} />
+          <Route path="/create" element={<BlogTranslationComponent />} />
+          <Route path="/my-blogs" element={<MyBlogs />} />
         </Routes>
       </div>
     </Router>
