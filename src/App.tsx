@@ -161,49 +161,61 @@ function App() {
           </div>
 
           {/* Results Section */}
-          {translations.length > 0 && (
+          {isProcessing ? (
             <div className="border-t pt-6">
               <h2 className="text-xl font-bold mb-4">Translation Results</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {translations.map((translation) => (
-                  <div
-                    key={translation.language}
-                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
-                      translation.accuracy === 0 ? "bg-red-50" : ""
-                    }`}
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-lg">
-                        {translation.language}
-                      </h3>
-                      {translation.accuracy > 0 && (
-                        <div className="flex items-center text-sm">
-                          <Percent className="w-4 h-4 mr-1" />
-                          <span
-                            className={`font-medium ${
-                              translation.accuracy >= 95
-                                ? "text-green-600"
-                                : "text-yellow-600"
-                            }`}
-                          >
-                            {translation.accuracy.toFixed(1)}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <p
-                      className={`${
-                        translation.accuracy === 0
-                          ? "text-red-600"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {translation.text}
-                    </p>
-                  </div>
-                ))}
+              <div className="flex justify-center items-center p-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <span className="ml-3 text-indigo-600">
+                  Processing translations...
+                </span>
               </div>
             </div>
+          ) : (
+            translations.length > 0 && (
+              <div className="border-t pt-6">
+                <h2 className="text-xl font-bold mb-4">Translation Results</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {translations.map((translation) => (
+                    <div
+                      key={translation.language}
+                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                        translation.accuracy === 0 ? "bg-red-50" : ""
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-lg">
+                          {translation.language}
+                        </h3>
+                        {translation.accuracy > 0 && (
+                          <div className="flex items-center text-sm">
+                            <Percent className="w-4 h-4 mr-1" />
+                            <span
+                              className={`font-medium ${
+                                translation.accuracy >= 95
+                                  ? "text-green-600"
+                                  : "text-yellow-600"
+                              }`}
+                            >
+                              {translation.accuracy.toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <p
+                        className={`${
+                          translation.accuracy === 0
+                            ? "text-red-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {translation.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
           )}
         </div>
 
