@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Mic, Loader } from "lucide-react";
+import { Mic, Video, Loader } from "lucide-react";
 import { transcribeAudio } from "../services/whisper";
+import { extractAudioFromVideo } from "../utils/videoProcessor";
 
 interface AudioUploadProps {
   onTranscriptionComplete: (text: string) => void;
@@ -12,23 +13,46 @@ const AudioUpload: React.FC<AudioUploadProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string>("");
+
+  const processFile = async (file: File) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      let audioBlob: Blob;
+
+      if (file.type.startsWith("video/")) {
+        setProgress("Extracting audio from video...");
+        audioBlob = await extractAudioFromVideo(file);
+        setProgress("Audio extracted, transcribing...");
+      } else {
+        audioBlob = file;
+        setProgress("Transcribing audio...");
+      }
+
+      // Convert Blob to File for the transcription API
+      const audioFile = new File([audioBlob], "audio.wav", {
+        type: "audio/wav",
+      });
+      const text = await transcribeAudio(audioFile);
+      onTranscriptionComplete(text);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to process file. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+      setProgress("");
+    }
+  };
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      const audioFile = acceptedFiles[0];
-      if (!audioFile) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const text = await transcribeAudio(audioFile);
-        onTranscriptionComplete(text);
-      } catch (err) {
-        setError("Failed to transcribe audio. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
+      const file = acceptedFiles[0];
+      if (!file) return;
+      await processFile(file);
     },
     [onTranscriptionComplete]
   );
@@ -37,8 +61,10 @@ const AudioUpload: React.FC<AudioUploadProps> = ({
     onDrop,
     accept: {
       "audio/*": [".mp3", ".wav", ".m4a", ".ogg"],
+      "video/*": [".mp4", ".webm", ".mov"],
     },
     maxFiles: 1,
+    maxSize: 100 * 1024 * 1024, // 100MB max size
   });
 
   return (
@@ -57,19 +83,25 @@ const AudioUpload: React.FC<AudioUploadProps> = ({
           {isLoading ? (
             <>
               <Loader className="w-8 h-8 text-blue-500 animate-spin" />
-              <p className="text-gray-600">Transcribing audio...</p>
+              <p className="text-gray-600">{progress}</p>
             </>
           ) : (
             <>
-              <Mic className="w-8 h-8 text-gray-400" />
+              <div className="flex space-x-4">
+                <Mic className="w-8 h-8 text-gray-400" />
+                <Video className="w-8 h-8 text-gray-400" />
+              </div>
               <div>
                 <p className="text-gray-600">
                   {isDragActive
-                    ? "Drop the audio file here"
-                    : "Drag and drop an audio file, or click to select"}
+                    ? "Drop the file here"
+                    : "Drag and drop an audio or video file, or click to select"}
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Supports MP3, WAV, M4A, and OGG formats
+                  Supports MP3, WAV, M4A, OGG, MP4, WEBM, and MOV formats
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Maximum file size: 100MB
                 </p>
               </div>
             </>

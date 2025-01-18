@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
+import { trackBlogView, startSession, endSession } from "../services/analytics";
+import BlogAnalytics from "./BlogAnalytics";
 
 interface BlogTranslation {
   blog_en: string;
@@ -48,12 +50,13 @@ const BlogDetail: React.FC = () => {
     data: BlogTranslation;
   } | null>(null);
   const [currentLanguage, setCurrentLanguage] = useState(language);
+  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(() => {
     const savedData = localStorage.getItem("blogTranslations");
     if (savedData && blogId) {
       const translations: BlogTranslations = JSON.parse(savedData);
-      // Find the blog by matching the URL slug with the first 10 chars of each blog's English text
       const foundBlogEntry = Object.entries(translations).find(
         ([_, blogData]) => {
           const slug = getUrlSlug(blogData.blog_en);
@@ -63,9 +66,21 @@ const BlogDetail: React.FC = () => {
 
       if (foundBlogEntry) {
         setBlog({ id: foundBlogEntry[0], data: foundBlogEntry[1] });
+        // Track page view
+        trackBlogView(foundBlogEntry[0], language);
+        // Start session timer
+        const startTime = startSession(foundBlogEntry[0]);
+        setSessionStartTime(startTime);
       }
     }
-  }, [blogId]);
+
+    // End session when component unmounts
+    return () => {
+      if (blog?.id && sessionStartTime) {
+        endSession(blog.id, sessionStartTime);
+      }
+    };
+  }, [blogId, language]);
 
   useEffect(() => {
     setCurrentLanguage(language);
@@ -135,11 +150,23 @@ const BlogDetail: React.FC = () => {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-6 flex justify-between items-center">
             <Link to="/my-blogs" className="text-blue-500 hover:text-blue-600">
               ← Back to Blogs
             </Link>
+            <button
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+            </button>
           </div>
+
+          {showAnalytics && blog.id && (
+            <div className="mb-8">
+              <BlogAnalytics blogId={blog.id} />
+            </div>
+          )}
 
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-wrap gap-2 mb-6">
