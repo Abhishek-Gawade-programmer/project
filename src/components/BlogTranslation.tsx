@@ -104,7 +104,7 @@ const BlogTranslationComponent: React.FC = () => {
       a.href = url;
       a.download = `blog_${blogId.slice(0, 8)}.json`;
       document.body.appendChild(a);
-      a.click();
+      //   a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 

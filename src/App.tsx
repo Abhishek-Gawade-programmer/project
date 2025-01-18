@@ -4,6 +4,7 @@ import { translateText } from "./services/openai";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import BlogTranslationComponent from "./components/BlogTranslation";
 import MyBlogs from "./components/MyBlogs";
+import BlogDetail from "./components/BlogDetail";
 
 interface Translation {
   language: string;
@@ -138,7 +139,7 @@ function App() {
                 <Link to="/" className="text-white hover:text-indigo-200">
                   Home
                 </Link>
-                <Link to="/create" className="text-white hover:text-indigo-200">
+                <Link to="/crea" className="text-white hover:text-indigo-200">
                   Create Blog
                 </Link>
                 <Link
@@ -344,8 +345,9 @@ function App() {
               </main>
             }
           />
-          <Route path="/create" element={<BlogTranslationComponent />} />
+          <Route path="/crea" element={<BlogTranslationComponent />} />
           <Route path="/my-blogs" element={<MyBlogs />} />
+          <Route path="/blog/:blogId/:language" element={<BlogDetail />} />
         </Routes>
       </div>
     </Router>
