@@ -54,7 +54,7 @@ const MyBlogs: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">My Translated Blogs</h1>
         <Link
-          to="/crea"
+          to="/create"
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Create New Blog
@@ -153,7 +153,7 @@ const MyBlogs: React.FC = () => {
             No blogs found. Start by creating a new blog!
           </p>
           <Link
-            to="/crea"
+            to="/create"
             className="inline-block mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
           >
             Create Your First Blog

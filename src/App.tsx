@@ -139,7 +139,7 @@ function App() {
                 <Link to="/" className="text-white hover:text-indigo-200">
                   Home
                 </Link>
-                <Link to="/crea" className="text-white hover:text-indigo-200">
+                <Link to="/create" className="text-white hover:text-indigo-200">
                   Create Blog
                 </Link>
                 <Link
@@ -345,7 +345,7 @@ function App() {
               </main>
             }
           />
-          <Route path="/crea" element={<BlogTranslationComponent />} />
+          <Route path="/create" element={<BlogTranslationComponent />} />
           <Route path="/my-blogs" element={<MyBlogs />} />
           <Route path="/blog/:blogId/:language" element={<BlogDetail />} />
         </Routes>
