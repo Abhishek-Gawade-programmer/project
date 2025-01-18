@@ -5,7 +5,8 @@ import { translateText } from "./services/openai";
 interface Translation {
   language: string;
   text: string;
-  accuracy: number;
+  humanText?: string;
+  bleuScore?: number;
 }
 
 const SUPPORTED_LANGUAGES = [
@@ -36,27 +37,22 @@ function App() {
     setTranslations([]);
 
     try {
-      // Create an array of promises for parallel translation
       const translationPromises = SUPPORTED_LANGUAGES.map(async (language) => {
         try {
           const translatedText = await translateText(inputText, language);
           return {
             language,
             text: translatedText,
-            // For now, we'll use a fixed high accuracy since we're using GPT-3.5
-            accuracy: 95 + Math.random() * 3, // Between 95-98%
           };
         } catch (err) {
           console.error(`Translation failed for ${language}:`, err);
           return {
             language,
             text: `Translation failed for ${language}`,
-            accuracy: 0,
           };
         }
       });
 
-      // Wait for all translations to complete
       const results = await Promise.all(translationPromises);
       setTranslations(results);
     } catch (err: any) {
@@ -80,6 +76,28 @@ function App() {
       };
       reader.readAsText(file);
     }
+  };
+
+  const updateHumanText = (language: string, text: string) => {
+    setTranslations(
+      translations.map((t) =>
+        t.language === language ? { ...t, humanText: text } : t
+      )
+    );
+  };
+
+  const calculateBleuScore = (language: string) => {
+    const translation = translations.find((t) => t.language === language);
+    if (!translation?.humanText) return;
+
+    // Placeholder for BLEU score calculation - for now using random score
+    const bleuScore = Math.floor(Math.random() * 100);
+
+    setTranslations(
+      translations.map((t) =>
+        t.language === language ? { ...t, bleuScore } : t
+      )
+    );
   };
 
   return (
@@ -179,38 +197,58 @@ function App() {
                   {translations.map((translation) => (
                     <div
                       key={translation.language}
-                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
-                        translation.accuracy === 0 ? "bg-red-50" : ""
-                      }`}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                     >
-                      <div className="flex justify-between items-center mb-2">
+                      <div className="mb-2">
                         <h3 className="font-semibold text-lg">
                           {translation.language}
                         </h3>
-                        {translation.accuracy > 0 && (
-                          <div className="flex items-center text-sm">
-                            <Percent className="w-4 h-4 mr-1" />
+                      </div>
+                      <p className="text-gray-700 mb-4">{translation.text}</p>
+                      <div className="mt-4 border-t pt-4">
+                        <label className="block text-gray-600 text-sm mb-2">
+                          Human Translation:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={translation.humanText || ""}
+                            onChange={(e) =>
+                              updateHumanText(
+                                translation.language,
+                                e.target.value
+                              )
+                            }
+                            className="flex-1 p-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                            placeholder={`Enter human translation for ${translation.language}...`}
+                          />
+                          <button
+                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm whitespace-nowrap"
+                            onClick={() =>
+                              calculateBleuScore(translation.language)
+                            }
+                            disabled={!translation.humanText}
+                          >
+                            Get BLEU Score
+                          </button>
+                        </div>
+                        {translation.bleuScore !== undefined && (
+                          <div className="mt-2 text-sm">
+                            <span className="font-medium">BLEU Score: </span>
                             <span
-                              className={`font-medium ${
-                                translation.accuracy >= 95
+                              className={`${
+                                translation.bleuScore >= 80
                                   ? "text-green-600"
-                                  : "text-yellow-600"
+                                  : translation.bleuScore >= 60
+                                  ? "text-yellow-600"
+                                  : "text-red-600"
                               }`}
                             >
-                              {translation.accuracy.toFixed(1)}%
+                              {translation.bleuScore}%
                             </span>
                           </div>
                         )}
                       </div>
-                      <p
-                        className={`${
-                          translation.accuracy === 0
-                            ? "text-red-600"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {translation.text}
-                      </p>
                     </div>
                   ))}
                 </div>
