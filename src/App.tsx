@@ -88,14 +88,32 @@ function App() {
 
   const calculateBleuScore = (language: string) => {
     const translation = translations.find((t) => t.language === language);
-    if (!translation?.humanText) return;
+    if (!translation?.humanText || !translation.text) return;
 
-    // Placeholder for BLEU score calculation - for now using random score
-    const bleuScore = Math.floor(Math.random() * 100);
+    // Split texts into words and normalize
+    const referenceWords = translation.humanText.toLowerCase().split(/\s+/);
+    const candidateWords = translation.text.toLowerCase().split(/\s+/);
+
+    // Calculate word overlap (simple unigram precision)
+    const matchingWords = candidateWords.filter((word) =>
+      referenceWords.includes(word)
+    );
+    const precision = matchingWords.length / candidateWords.length;
+
+    // Calculate brevity penalty
+    const brevityPenalty = Math.exp(
+      1 - referenceWords.length / candidateWords.length
+    );
+
+    // Calculate final BLEU score
+    const score = precision * brevityPenalty;
+
+    // Convert to percentage and ensure it's between 0-100
+    const scorePercentage = Math.min(100, Math.round(score * 100));
 
     setTranslations(
       translations.map((t) =>
-        t.language === language ? { ...t, bleuScore } : t
+        t.language === language ? { ...t, bleuScore: scorePercentage } : t
       )
     );
   };
