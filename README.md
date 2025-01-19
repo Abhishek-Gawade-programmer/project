@@ -1,5 +1,7 @@
 # Project Overview
 
+### Video https://www.loom.com/share/b544bd096a59486a800dca1a036bcce7
+
 This project is a Vite + React + TypeScript application designed for blog translation and management. It leverages OpenAI's GPT-3.5 model for translating blog content into multiple Indian languages. The project also includes features for managing blogs, tracking analytics, and more.
 
 ## Installation
